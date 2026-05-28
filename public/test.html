@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>Test Donation</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Sarabun', sans-serif;
+    background: #0f0f1a;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px;
+  }
+  .card {
+    background: #1a1a2e;
+    border: 1px solid rgba(255,215,0,0.2);
+    border-radius: 16px;
+    padding: 32px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+  }
+  h1 { font-size: 22px; margin-bottom: 8px; color: #FFD700; }
+  p  { font-size: 13px; color: rgba(255,255,255,0.5); margin-bottom: 28px; }
+  label { display: block; font-size: 13px; color: rgba(255,255,255,0.7); margin-bottom: 6px; }
+  input, textarea {
+    width: 100%;
+    background: #0f0f1a;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 15px;
+    padding: 10px 14px;
+    margin-bottom: 18px;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.2s;
+  }
+  input:focus, textarea:focus { border-color: #FFD700; }
+  textarea { resize: vertical; min-height: 70px; }
+  button {
+    width: 100%;
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    color: #000;
+    font-weight: 700;
+    font-size: 16px;
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    font-family: inherit;
+  }
+  button:hover  { opacity: 0.9; }
+  button:active { transform: scale(0.98); }
+  #status {
+    margin-top: 16px;
+    font-size: 13px;
+    text-align: center;
+    min-height: 20px;
+    color: #4ade80;
+  }
+  #status.error { color: #f87171; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>💰 ทดสอบ Donation Alert</h1>
+  <p>กด Send แล้วดู overlay.html ที่เปิดไว้</p>
+
+  <label>ชื่อผู้โอน</label>
+  <input id="sender" type="text" value="แฟนคลับ #1" />
+
+  <label>จำนวนเงิน (บาท)</label>
+  <input id="amount" type="number" value="100" min="1" />
+
+  <label>ข้อความ (ไม่บังคับ)</label>
+  <textarea id="message" placeholder="เขียนข้อความถึง streamer..."></textarea>
+
+  <button onclick="sendTest()">🚀 ส่ง Test Alert</button>
+  <div id="status"></div>
+</div>
+
+<script>
+  async function sendTest() {
+    const status = document.getElementById('status');
+    status.className = '';
+    status.textContent = 'กำลังส่ง...';
+    try {
+      const res = await fetch('/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sender:  document.getElementById('sender').value  || 'ไม่ระบุชื่อ',
+          amount:  document.getElementById('amount').value  || 0,
+          message: document.getElementById('message').value || ''
+        })
+      });
+      if (res.ok) {
+        status.textContent = '✅ ส่งแล้ว! ดู overlay ได้เลย';
+      } else {
+        throw new Error('Server error ' + res.status);
+      }
+    } catch (e) {
+      status.className = 'error';
+      status.textContent = '❌ Error: ' + e.message;
+    }
+  }
+</script>
+</body>
+</html>

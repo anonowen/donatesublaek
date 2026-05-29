@@ -45,11 +45,23 @@ function broadcast(data) {
   }
 }
 
+// ---- Pending donations (match name+message to payment) ----
+const pending = new Map(); // key: amount string, value: {name, message, ts}
+
 // ---- PromptPay QR API ----
-// GET /api/qr?amount=100
+// GET /api/qr?amount=100&name=xxx&message=yyy
 app.get('/api/qr', async (req, res) => {
   const amount = parseFloat(req.query.amount) || 0;
+  const name = (req.query.name || '').trim().slice(0, 40);
+  const message = (req.query.message || '').trim().slice(0, 250);
   if (!PROMPTPAY_ID) return res.status(500).json({ error: 'PROMPTPAY_ID not set in .env' });
+
+  // Store pending so webhook can match by amount
+  if (name && amount > 0) {
+    pending.set(String(amount), { name, message, ts: Date.now() });
+    // Auto-expire after 30 min
+    setTimeout(() => pending.delete(String(amount)), 30 * 60 * 1000);
+  }
 
   const payload = generatePayload(PROMPTPAY_ID, { amount });
   const qrDataUrl = await QRCode.toDataURL(payload, { width: 300, margin: 2 });
@@ -73,8 +85,13 @@ app.post('/webhook/android', (req, res) => {
     const message = req.body?.donorMessage || '';
 
     if (amount > 0) {
-      broadcast({ type: 'donation', sender, amount, message });
-      console.log(`[Donation] ${sender} → ฿${amount}`);
+      // Try to match pending donation for name & message
+      const p = pending.get(String(amount));
+      const displayName = (p?.name) || sender;
+      const displayMsg  = (p?.message) || message;
+      if (p) pending.delete(String(amount));
+      broadcast({ type: 'donation', sender: displayName, amount, message: displayMsg });
+      console.log(`[Donation] ${displayName} → ฿${amount} "${displayMsg}"`);
     }
 
     res.json({ status: 'ok', parsed: { sender, amount } });

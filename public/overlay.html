@@ -145,17 +145,48 @@
 
   .message:empty { display: none; }
 
-  /* Sound slot — place your audio file as /sounds/alert.mp3 */
-  #alert-sound { display: none; }
+  #unlock-btn {
+    position: fixed;
+    top: 12px; right: 12px;
+    background: rgba(255,215,0,0.15);
+    border: 1px solid rgba(255,215,0,0.4);
+    color: #FFD700;
+    font-size: 12px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-family: inherit;
+    backdrop-filter: blur(4px);
+    transition: opacity 0.3s;
+    z-index: 999;
+  }
+  #unlock-btn.hidden { opacity: 0; pointer-events: none; }
 </style>
 </head>
 <body>
 
 <div id="alert-container"></div>
+<button id="unlock-btn" onclick="unlockAudio()">🔊 เปิดเสียง</button>
 <script>
   const container = document.getElementById('alert-container');
   const queue = [];
   let busy = false;
+  let audioUnlocked = false;
+
+  function unlockAudio() {
+    // Play silent buffer to unlock autoplay policy
+    alertAudio.volume = 0;
+    alertAudio.play().then(() => {
+      alertAudio.pause();
+      alertAudio.currentTime = 0;
+      alertAudio.volume = cfg.chimeVolume ?? 0.6;
+      audioUnlocked = true;
+      // Unlock speech synthesis
+      const utt = new SpeechSynthesisUtterance('');
+      window.speechSynthesis.speak(utt);
+      document.getElementById('unlock-btn').classList.add('hidden');
+    }).catch(() => {});
+  }
   let audioCtx = null;
   let cfg = {
     chimeEnabled: true, chimeVolume: 0.6,

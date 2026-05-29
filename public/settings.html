@@ -216,21 +216,43 @@
   bindRange('ttsPitch', 'ttsPitchVal', v => parseFloat(v).toFixed(2));
   bindRange('alertDuration', 'alertDurationVal', v => (v / 1000).toFixed(1) + 's');
 
-  // ---- Load current settings from server ----
+  const LS_KEY = 'donateSettings';
+
+  function applyToUI(s) {
+    document.getElementById('chimeEnabled').checked = s.chimeEnabled;
+    document.getElementById('chimeVolume').value = s.chimeVolume;
+    document.getElementById('chimeVolumeVal').textContent = Math.round(s.chimeVolume * 100) + '%';
+    document.getElementById('ttsEnabled').checked = s.ttsEnabled;
+    document.getElementById('ttsRate').value = s.ttsRate;
+    document.getElementById('ttsRateVal').textContent = parseFloat(s.ttsRate).toFixed(2) + 'x';
+    document.getElementById('ttsPitch').value = s.ttsPitch;
+    document.getElementById('ttsPitchVal').textContent = parseFloat(s.ttsPitch).toFixed(2);
+    document.getElementById('alertDuration').value = s.alertDuration;
+    document.getElementById('alertDurationVal').textContent = (s.alertDuration / 1000).toFixed(1) + 's';
+  }
+
+  // ---- Load settings: localStorage first, then server ----
   async function loadSettings() {
-    const res = await fetch('/api/settings');
-    currentSettings = await res.json();
-    document.getElementById('chimeEnabled').checked = currentSettings.chimeEnabled;
-    document.getElementById('chimeVolume').value = currentSettings.chimeVolume;
-    document.getElementById('chimeVolumeVal').textContent = Math.round(currentSettings.chimeVolume * 100) + '%';
-    document.getElementById('ttsEnabled').checked = currentSettings.ttsEnabled;
-    document.getElementById('ttsRate').value = currentSettings.ttsRate;
-    document.getElementById('ttsRateVal').textContent = parseFloat(currentSettings.ttsRate).toFixed(2) + 'x';
-    document.getElementById('ttsPitch').value = currentSettings.ttsPitch;
-    document.getElementById('ttsPitchVal').textContent = parseFloat(currentSettings.ttsPitch).toFixed(2);
-    document.getElementById('alertDuration').value = currentSettings.alertDuration;
-    document.getElementById('alertDurationVal').textContent = (currentSettings.alertDuration / 1000).toFixed(1) + 's';
-    loadVoices();
+    // Try localStorage first (persists across server restarts)
+    const saved = localStorage.getItem(LS_KEY);
+    if (saved) {
+      try {
+        currentSettings = JSON.parse(saved);
+        applyToUI(currentSettings);
+      } catch {}
+    }
+    // Sync to server (to update overlay if server just restarted)
+    if (currentSettings && Object.keys(currentSettings).length) {
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(currentSettings)
+      }).catch(() => {});
+    } else {
+      // No localStorage — load from server defaults
+      const res = await fetch('/api/settings').catch(() => null);
+      if (res?.ok) { currentSettings = await res.json(); applyToUI(currentSettings); }
+    }
   }
 
   // ---- Save settings ----
@@ -241,7 +263,7 @@
       chimeEnabled: document.getElementById('chimeEnabled').checked,
       chimeVolume: parseFloat(document.getElementById('chimeVolume').value),
       ttsEnabled: document.getElementById('ttsEnabled').checked,
-      ttsVoice: document.getElementById('ttsVoice').value,
+      ttsVoice: '',
       ttsRate: parseFloat(document.getElementById('ttsRate').value),
       ttsPitch: parseFloat(document.getElementById('ttsPitch').value),
       alertDuration: parseInt(document.getElementById('alertDuration').value)
@@ -254,7 +276,8 @@
       });
       if (res.ok) {
         currentSettings = body;
-        status.textContent = '✅ บันทึกแล้ว — overlay อัพเดทแล้ว';
+        localStorage.setItem(LS_KEY, JSON.stringify(body));
+        status.textContent = '✅ บันทึกแล้ว';
       } else throw new Error('Server error');
     } catch (e) {
       status.className = 'err';

@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Donation Alert — Settings</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Sarabun', 'Noto Sans Thai', sans-serif;
+    background: #0f0f1a;
+    color: #fff;
+    min-height: 100vh;
+    padding: 32px 20px;
+  }
+  h1 { font-size: 22px; color: #FFD700; margin-bottom: 4px; }
+  .sub { font-size: 13px; color: rgba(255,255,255,0.4); margin-bottom: 32px; }
+
+  .card {
+    background: #1a1a2e;
+    border: 1px solid rgba(255,215,0,0.15);
+    border-radius: 16px;
+    padding: 24px;
+    max-width: 520px;
+    margin-bottom: 20px;
+  }
+  .card h2 { font-size: 15px; color: #FFD700; margin-bottom: 20px; letter-spacing: 0.5px; }
+
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    gap: 16px;
+  }
+  .row:last-child { margin-bottom: 0; }
+
+  label { font-size: 14px; color: rgba(255,255,255,0.85); flex: 1; }
+  label small { display: block; font-size: 12px; color: rgba(255,255,255,0.4); margin-top: 2px; }
+
+  /* Toggle */
+  .toggle { position: relative; width: 48px; height: 26px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .slider {
+    position: absolute; inset: 0;
+    background: rgba(255,255,255,0.15);
+    border-radius: 26px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .slider::before {
+    content: '';
+    position: absolute;
+    width: 20px; height: 20px;
+    left: 3px; top: 3px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.2s;
+  }
+  .toggle input:checked + .slider { background: #FFD700; }
+  .toggle input:checked + .slider::before { transform: translateX(22px); }
+
+  /* Range */
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 160px;
+    height: 6px;
+    background: rgba(255,255,255,0.15);
+    border-radius: 3px;
+    outline: none;
+    flex-shrink: 0;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: #FFD700;
+    cursor: pointer;
+  }
+  .range-val { font-size: 13px; color: #FFD700; width: 36px; text-align: right; flex-shrink: 0; }
+
+  /* Select */
+  select {
+    background: #0f0f1a;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px;
+    color: #fff;
+    font-size: 13px;
+    padding: 8px 12px;
+    width: 220px;
+    flex-shrink: 0;
+    font-family: inherit;
+    outline: none;
+  }
+  select:focus { border-color: #FFD700; }
+
+  /* Buttons */
+  .btn-row { display: flex; gap: 12px; margin-top: 28px; max-width: 520px; }
+  .btn {
+    flex: 1;
+    padding: 13px;
+    border-radius: 10px;
+    border: none;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: opacity 0.15s;
+  }
+  .btn:hover { opacity: 0.85; }
+  .btn-save { background: linear-gradient(135deg, #FFD700, #FFA500); color: #000; }
+  .btn-test { background: rgba(255,215,0,0.12); color: #FFD700; border: 1px solid rgba(255,215,0,0.3); }
+
+  #status { margin-top: 14px; font-size: 13px; color: #4ade80; text-align: center; min-height: 18px; }
+  #status.err { color: #f87171; }
+</style>
+</head>
+<body>
+<h1>⚙️ Donation Alert Settings</h1>
+<p class="sub">ตั้งค่าเสียงและ TTS — บันทึกแล้ว overlay จะอัพเดททันที</p>
+
+<!-- Chime -->
+<div class="card">
+  <h2>🔔 เสียงแจ้งเตือน (Chime)</h2>
+  <div class="row">
+    <label>เปิดเสียง chime<small>เสียงกริ่งตอน alert ขึ้น</small></label>
+    <label class="toggle"><input type="checkbox" id="chimeEnabled"><span class="slider"></span></label>
+  </div>
+  <div class="row">
+    <label>ระดับเสียง</label>
+    <input type="range" id="chimeVolume" min="0" max="1" step="0.05">
+    <span class="range-val" id="chimeVolumeVal">0.6</span>
+  </div>
+</div>
+
+<!-- TTS -->
+<div class="card">
+  <h2>🗣️ อ่านข้อความ (TTS)</h2>
+  <div class="row">
+    <label>เปิดอ่านข้อความ<small>อ่านชื่อ + ยอด + ข้อความ</small></label>
+    <label class="toggle"><input type="checkbox" id="ttsEnabled"><span class="slider"></span></label>
+  </div>
+  <div class="row">
+    <label>เสียง (Voice)<small>เลือกเสียงผู้หญิงภาษาไทย</small></label>
+    <select id="ttsVoice"><option value="">กำลังโหลด...</option></select>
+  </div>
+  <div class="row">
+    <label>ความเร็ว (Rate)</label>
+    <input type="range" id="ttsRate" min="0.5" max="1.8" step="0.05">
+    <span class="range-val" id="ttsRateVal">0.95</span>
+  </div>
+  <div class="row">
+    <label>ระดับเสียงสูงต่ำ (Pitch)</label>
+    <input type="range" id="ttsPitch" min="0.5" max="2" step="0.05">
+    <span class="range-val" id="ttsPitchVal">1.1</span>
+  </div>
+</div>
+
+<!-- Alert duration -->
+<div class="card">
+  <h2>⏱️ ระยะเวลาแสดง Alert</h2>
+  <div class="row">
+    <label>แสดงนานแค่ไหน (วินาที)</label>
+    <input type="range" id="alertDuration" min="3000" max="15000" step="500">
+    <span class="range-val" id="alertDurationVal">6s</span>
+  </div>
+</div>
+
+<div class="btn-row">
+  <button class="btn btn-test" onclick="testAlert()">▶ ทดสอบ Alert</button>
+  <button class="btn btn-save" onclick="saveSettings()">💾 บันทึก</button>
+</div>
+<div id="status"></div>
+
+<script>
+  let currentSettings = {};
+
+  // ---- Load voices ----
+  function loadVoices() {
+    const sel = document.getElementById('ttsVoice');
+    const voices = window.speechSynthesis.getVoices();
+    if (!voices.length) return;
+
+    sel.innerHTML = '';
+
+    // Sort: Thai voices first, female preferred
+    const sorted = [...voices].sort((a, b) => {
+      const aT = a.lang.startsWith('th') ? 0 : 1;
+      const bT = b.lang.startsWith('th') ? 0 : 1;
+      if (aT !== bT) return aT - bT;
+      // Prefer female-sounding names
+      const femaleKw = /female|woman|girl|thapthim|pattara|somsi|น้ำทิพย์|ณัฐ/i;
+      const aF = femaleKw.test(a.name) ? 0 : 1;
+      const bF = femaleKw.test(b.name) ? 0 : 1;
+      return aF - bF;
+    });
+
+    sorted.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v.name;
+      const flag = v.lang.startsWith('th') ? '🇹🇭 ' : '';
+      opt.textContent = `${flag}${v.name} (${v.lang})`;
+      sel.appendChild(opt);
+    });
+
+    if (currentSettings.ttsVoice) sel.value = currentSettings.ttsVoice;
+  }
+
+  window.speechSynthesis.onvoiceschanged = loadVoices;
+  loadVoices();
+
+  // ---- Range labels ----
+  function bindRange(id, labelId, fmt) {
+    const el = document.getElementById(id);
+    const lbl = document.getElementById(labelId);
+    el.addEventListener('input', () => { lbl.textContent = fmt(el.value); });
+  }
+  bindRange('chimeVolume', 'chimeVolumeVal', v => Math.round(v * 100) + '%');
+  bindRange('ttsRate', 'ttsRateVal', v => parseFloat(v).toFixed(2) + 'x');
+  bindRange('ttsPitch', 'ttsPitchVal', v => parseFloat(v).toFixed(2));
+  bindRange('alertDuration', 'alertDurationVal', v => (v / 1000).toFixed(1) + 's');
+
+  // ---- Load current settings from server ----
+  async function loadSettings() {
+    const res = await fetch('/api/settings');
+    currentSettings = await res.json();
+    document.getElementById('chimeEnabled').checked = currentSettings.chimeEnabled;
+    document.getElementById('chimeVolume').value = currentSettings.chimeVolume;
+    document.getElementById('chimeVolumeVal').textContent = Math.round(currentSettings.chimeVolume * 100) + '%';
+    document.getElementById('ttsEnabled').checked = currentSettings.ttsEnabled;
+    document.getElementById('ttsRate').value = currentSettings.ttsRate;
+    document.getElementById('ttsRateVal').textContent = parseFloat(currentSettings.ttsRate).toFixed(2) + 'x';
+    document.getElementById('ttsPitch').value = currentSettings.ttsPitch;
+    document.getElementById('ttsPitchVal').textContent = parseFloat(currentSettings.ttsPitch).toFixed(2);
+    document.getElementById('alertDuration').value = currentSettings.alertDuration;
+    document.getElementById('alertDurationVal').textContent = (currentSettings.alertDuration / 1000).toFixed(1) + 's';
+    loadVoices();
+  }
+
+  // ---- Save settings ----
+  async function saveSettings() {
+    const status = document.getElementById('status');
+    status.className = '';
+    const body = {
+      chimeEnabled: document.getElementById('chimeEnabled').checked,
+      chimeVolume: parseFloat(document.getElementById('chimeVolume').value),
+      ttsEnabled: document.getElementById('ttsEnabled').checked,
+      ttsVoice: document.getElementById('ttsVoice').value,
+      ttsRate: parseFloat(document.getElementById('ttsRate').value),
+      ttsPitch: parseFloat(document.getElementById('ttsPitch').value),
+      alertDuration: parseInt(document.getElementById('alertDuration').value)
+    };
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (res.ok) {
+        currentSettings = body;
+        status.textContent = '✅ บันทึกแล้ว — overlay อัพเดทแล้ว';
+      } else throw new Error('Server error');
+    } catch (e) {
+      status.className = 'err';
+      status.textContent = '❌ ' + e.message;
+    }
+  }
+
+  // ---- Test alert ----
+  async function testAlert() {
+    await fetch('/test', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sender: 'ทดสอบเสียง', amount: 99, message: 'สวัสดีผู้ชม!' })
+    });
+  }
+
+  loadSettings();
+</script>
+</body>
+</html>

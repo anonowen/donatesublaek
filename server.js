@@ -12,6 +12,17 @@ const wss = new WebSocketServer({ server });
 
 const PROMPTPAY_ID = process.env.PROMPTPAY_ID || '';
 
+// ---- Settings (in-memory, reset on restart) ----
+let settings = {
+  chimeEnabled: true,
+  chimeVolume: 0.6,
+  ttsEnabled: true,
+  ttsVoice: '',       // voice name, empty = auto pick Thai female
+  ttsRate: 0.95,
+  ttsPitch: 1.1,
+  alertDuration: 6000 // ms
+};
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
@@ -84,6 +95,15 @@ app.post('/test', (req, res) => {
 // ---- Config endpoint (for donate page) ----
 app.get('/api/config', (req, res) => {
   res.json({ hasPromptPay: !!PROMPTPAY_ID });
+});
+
+// ---- Settings endpoints ----
+app.get('/api/settings', (req, res) => res.json(settings));
+app.post('/api/settings', (req, res) => {
+  settings = { ...settings, ...req.body };
+  broadcast({ type: 'settings', settings });
+  console.log('[Settings updated]', settings);
+  res.json({ status: 'ok', settings });
 });
 
 const PORT = process.env.PORT || 3000;

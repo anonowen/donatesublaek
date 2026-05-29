@@ -68,10 +68,15 @@ app.get('/api/qr', async (req, res) => {
   res.json({ qr: qrDataUrl });
 });
 
+// ---- Debug: last received webhook ----
+let lastWebhook = null;
+app.get('/debug/last', (req, res) => res.json(lastWebhook || { empty: true }));
+
 // ---- Android LINE notification webhook ----
 // MacroDroid POST to /webhook/android with body: { "text": "..raw notification text.." }
 app.post('/webhook/android', (req, res) => {
   try {
+    lastWebhook = { body: req.body, ts: new Date().toISOString() };
     const text = req.body?.text || '';
     console.log('[Android notification]', text);
 

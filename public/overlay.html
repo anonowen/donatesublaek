@@ -3,7 +3,6 @@
 <head>
 <meta charset="UTF-8">
 <title>Donation Overlay</title>
-<script src="https://code.responsivevoice.org/responsivevoice.js?key=FREE"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -219,18 +218,22 @@
     }
   }
 
-  // ---- Text-to-Speech (ResponsiveVoice) ----
-  function speak(sender, amount, message) {
+  // ---- Text-to-Speech (Google Translate proxy) ----
+  async function speak(sender, amount, message) {
     if (!cfg.ttsEnabled) return;
-    if (typeof responsiveVoice === 'undefined') return;
     const amountText = Number(amount).toLocaleString('th-TH') + ' บาท';
     let text = `${sender} โอน ${amountText}`;
     if (message) text += ` พูดว่า ${message}`;
-    responsiveVoice.speak(text, 'Thai Female', {
-      rate: cfg.ttsRate ?? 0.95,
-      pitch: cfg.ttsPitch ?? 1.1,
-      volume: 1
-    });
+    try {
+      const rate = cfg.ttsRate ?? 0.95;
+      const res = await fetch(`/api/tts?text=${encodeURIComponent(text)}&rate=${rate}`);
+      if (!res.ok) return;
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      audio.onended = () => URL.revokeObjectURL(url);
+      audio.play().catch(e => console.warn('TTS play error', e));
+    } catch (e) { console.warn('TTS error', e); }
   }
 
   function formatAmount(n) {

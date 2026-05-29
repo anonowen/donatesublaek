@@ -226,6 +226,7 @@
     if (message) text += ` พูดว่า ${message}`;
     const src = `/api/tts?text=${encodeURIComponent(text)}`;
     const audio = new Audio(src);
+    audio.playbackRate = cfg.ttsRate ?? 0.95;
     audio.play().catch(e => console.warn('TTS error', e));
   }
 

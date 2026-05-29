@@ -168,13 +168,23 @@
 
   // ---- Alert sound ----
   const alertAudio = new Audio('/sounds/alert.mp3');
-  function playChime() {
-    if (!cfg.chimeEnabled) return;
+  function playChime(sender, amount, message) {
+    if (!cfg.chimeEnabled) {
+      speak(sender, amount, message);
+      return;
+    }
     try {
       alertAudio.volume = cfg.chimeVolume ?? 0.6;
       alertAudio.currentTime = 0;
-      alertAudio.play().catch(e => console.warn('Audio error', e));
-    } catch (e) { console.warn('Audio error', e); }
+      alertAudio.onended = () => speak(sender, amount, message);
+      alertAudio.play().catch(e => {
+        console.warn('Audio error', e);
+        speak(sender, amount, message);
+      });
+    } catch (e) {
+      console.warn('Audio error', e);
+      speak(sender, amount, message);
+    }
   }
 
   // ---- Text-to-Speech ----
@@ -194,7 +204,7 @@
       const v = voices.find(v => v.name === cfg.ttsVoice);
       if (v) utt.voice = v;
     }
-    setTimeout(() => window.speechSynthesis.speak(utt), 800);
+    window.speechSynthesis.speak(utt);
   }
 
   function formatAmount(n) {
@@ -223,8 +233,7 @@
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           box.classList.add('show');
-          playChime();
-          speak(sender, amount, message);
+          playChime(sender, amount, message);
         });
       });
 

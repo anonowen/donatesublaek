@@ -229,12 +229,13 @@
     utt.lang = 'th-TH';
     utt.rate = cfg.ttsRate ?? 0.95;
     utt.pitch = cfg.ttsPitch ?? 1.1;
-    // Pick voice
-    if (cfg.ttsVoice) {
-      const voices = window.speechSynthesis.getVoices();
-      const v = voices.find(v => v.name === cfg.ttsVoice);
-      if (v) utt.voice = v;
-    }
+    // Pick Thai voice only
+    const voices = window.speechSynthesis.getVoices();
+    const thaiVoices = voices.filter(v => v.lang.startsWith('th'));
+    const picked = cfg.ttsVoice
+      ? thaiVoices.find(v => v.name === cfg.ttsVoice)
+      : thaiVoices[0];
+    if (picked) utt.voice = picked;
     window.speechSynthesis.speak(utt);
   }
 

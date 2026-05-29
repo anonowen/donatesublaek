@@ -184,22 +184,18 @@
     sel.innerHTML = '';
 
     // Sort: Thai voices first, female preferred
-    const sorted = [...voices].sort((a, b) => {
-      const aT = a.lang.startsWith('th') ? 0 : 1;
-      const bT = b.lang.startsWith('th') ? 0 : 1;
-      if (aT !== bT) return aT - bT;
-      // Prefer female-sounding names
-      const femaleKw = /female|woman|girl|thapthim|pattara|somsi|น้ำทิพย์|ณัฐ/i;
-      const aF = femaleKw.test(a.name) ? 0 : 1;
-      const bF = femaleKw.test(b.name) ? 0 : 1;
-      return aF - bF;
-    });
+    // Thai voices only
+    const thaiVoices = voices.filter(v => v.lang.startsWith('th'));
 
-    sorted.forEach(v => {
+    if (!thaiVoices.length) {
+      sel.innerHTML = '<option value="">❌ ไม่พบเสียงภาษาไทย — ติดตั้ง Thai language pack ก่อน</option>';
+      return;
+    }
+
+    thaiVoices.forEach(v => {
       const opt = document.createElement('option');
       opt.value = v.name;
-      const flag = v.lang.startsWith('th') ? '🇹🇭 ' : '';
-      opt.textContent = `${flag}${v.name} (${v.lang})`;
+      opt.textContent = `🇹🇭 ${v.name}`;
       sel.appendChild(opt);
     });
 

@@ -52,10 +52,10 @@ app.post('/webhook/android', (req, res) => {
     const text = req.body?.text || '';
     console.log('[Android notification]', text);
 
-    // Parse SCB LINE notification format
-    // Example: "รับโอนเงิน ฿100.00 จาก นาย ก ข ค เวลา 14:30"
-    const amountMatch = text.match(/฿([\d,]+(?:\.\d{1,2})?)/);
-    const senderMatch = text.match(/จาก\s+(.+?)(?:\s+เวลา|\s+วันที่|$)/);
+    // Parse SCB Connect LINE notification format
+    // Example: "รายการเงินเข้า\n+1,200.00 บาท\nจากบัญชี นาย ธนกร พนธน X-3070\nกสิกรไทย"
+    const amountMatch = text.match(/\+([\d,]+(?:\.\d{1,2})?)\s*บาท/);
+    const senderMatch = text.match(/จากบัญชี\s+(.+?)\s+X-\d+/);
 
     const amount = amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : 0;
     const sender = senderMatch ? senderMatch[1].trim() : 'ไม่ระบุชื่อ';

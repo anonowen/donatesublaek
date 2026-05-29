@@ -218,14 +218,13 @@
     }
   }
 
-  // ---- Text-to-Speech (Google Translate direct) ----
+  // ---- Text-to-Speech (server TTS proxy) ----
   function speak(sender, amount, message) {
     if (!cfg.ttsEnabled) return;
     const amountText = Number(amount).toLocaleString('th-TH') + ' บาท';
     let text = `${sender} โอน ${amountText}`;
     if (message) text += ` พูดว่า ${message}`;
-    const rate = cfg.ttsRate ?? 0.95;
-    const src = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=th&client=tw-ob&ttsspeed=${rate}`;
+    const src = `/api/tts?text=${encodeURIComponent(text)}`;
     const audio = new Audio(src);
     audio.play().catch(e => console.warn('TTS error', e));
   }

@@ -106,20 +106,15 @@ app.post('/api/settings', (req, res) => {
   res.json({ status: 'ok', settings });
 });
 
-// ---- TTS proxy (Google Translate) ----
-app.get('/api/tts', async (req, res) => {
+// ---- TTS proxy (node-gtts) ----
+const gtts = require('node-gtts')('th');
+app.get('/api/tts', (req, res) => {
   const text = req.query.text || '';
-  const rate = parseFloat(req.query.rate) || 0.95;
   if (!text) return res.status(400).end();
+  res.set('Content-Type', 'audio/mpeg');
+  res.set('Cache-Control', 'public, max-age=3600');
   try {
-    const url = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(text)}&tl=th&client=tw-ob&ttsspeed=${rate}`;
-    const response = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': 'https://translate.google.com/' }
-    });
-    if (!response.ok) throw new Error('TTS fetch failed');
-    res.set('Content-Type', 'audio/mpeg');
-    const buffer = await response.arrayBuffer();
-    res.send(Buffer.from(buffer));
+    gtts.stream(text).pipe(res);
   } catch (err) {
     console.error('[TTS error]', err.message);
     res.status(500).end();

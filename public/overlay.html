@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Donation Overlay</title>
+<script src="https://code.responsivevoice.org/responsivevoice.js?key=FREE"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -218,25 +219,18 @@
     }
   }
 
-  // ---- Text-to-Speech ----
+  // ---- Text-to-Speech (ResponsiveVoice) ----
   function speak(sender, amount, message) {
-    if (!cfg.ttsEnabled || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
+    if (!cfg.ttsEnabled) return;
+    if (typeof responsiveVoice === 'undefined') return;
     const amountText = Number(amount).toLocaleString('th-TH') + ' บาท';
     let text = `${sender} โอน ${amountText}`;
     if (message) text += ` พูดว่า ${message}`;
-    const utt = new SpeechSynthesisUtterance(text);
-    utt.lang = 'th-TH';
-    utt.rate = cfg.ttsRate ?? 0.95;
-    utt.pitch = cfg.ttsPitch ?? 1.1;
-    // Pick Thai voice only
-    const voices = window.speechSynthesis.getVoices();
-    const thaiVoices = voices.filter(v => v.lang.startsWith('th'));
-    const picked = cfg.ttsVoice
-      ? thaiVoices.find(v => v.name === cfg.ttsVoice)
-      : thaiVoices[0];
-    if (picked) utt.voice = picked;
-    window.speechSynthesis.speak(utt);
+    responsiveVoice.speak(text, 'Thai Female', {
+      rate: cfg.ttsRate ?? 0.95,
+      pitch: cfg.ttsPitch ?? 1.1,
+      volume: 1
+    });
   }
 
   function formatAmount(n) {

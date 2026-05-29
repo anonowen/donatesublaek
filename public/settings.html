@@ -175,35 +175,7 @@
 <script>
   let currentSettings = {};
 
-  // ---- Load voices ----
-  function loadVoices() {
-    const sel = document.getElementById('ttsVoice');
-    const voices = window.speechSynthesis.getVoices();
-    if (!voices.length) return;
-
-    sel.innerHTML = '';
-
-    // Sort: Thai voices first, female preferred
-    // Thai voices only
-    const thaiVoices = voices.filter(v => v.lang.startsWith('th'));
-
-    if (!thaiVoices.length) {
-      sel.innerHTML = '<option value="">❌ ไม่พบเสียงภาษาไทย — ติดตั้ง Thai language pack ก่อน</option>';
-      return;
-    }
-
-    thaiVoices.forEach(v => {
-      const opt = document.createElement('option');
-      opt.value = v.name;
-      opt.textContent = `🇹🇭 ${v.name}`;
-      sel.appendChild(opt);
-    });
-
-    if (currentSettings.ttsVoice) sel.value = currentSettings.ttsVoice;
-  }
-
-  window.speechSynthesis.onvoiceschanged = loadVoices;
-  loadVoices();
+  // TTS uses node-gtts (Thai Female fixed) — no voice selector needed
 
   // ---- Range labels ----
   function bindRange(id, labelId, fmt) {

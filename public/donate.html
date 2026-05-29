@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Donate</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Sarabun', 'Noto Sans Thai', sans-serif;
+    background: #0f0f1a;
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .card {
+    background: #1a1a2e;
+    border: 1px solid rgba(255,215,0,0.2);
+    border-radius: 20px;
+    padding: 32px 28px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+  }
+  h1 { font-size: 24px; color: #FFD700; margin-bottom: 6px; text-align: center; }
+  .subtitle { font-size: 13px; color: rgba(255,255,255,0.4); text-align: center; margin-bottom: 28px; }
+
+  label { display: block; font-size: 13px; color: rgba(255,255,255,0.6); margin-bottom: 6px; margin-top: 16px; }
+  input {
+    width: 100%;
+    background: #0f0f1a;
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 10px;
+    color: #fff;
+    font-size: 16px;
+    padding: 12px 16px;
+    outline: none;
+    font-family: inherit;
+    transition: border-color 0.2s;
+  }
+  input:focus { border-color: #FFD700; }
+
+  .amounts {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+  .amount-btn {
+    flex: 1;
+    min-width: 60px;
+    background: rgba(255,215,0,0.08);
+    border: 1px solid rgba(255,215,0,0.25);
+    border-radius: 8px;
+    color: #FFD700;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 8px 4px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s;
+    text-align: center;
+  }
+  .amount-btn:hover, .amount-btn.active {
+    background: rgba(255,215,0,0.2);
+    border-color: #FFD700;
+  }
+
+  .gen-btn {
+    width: 100%;
+    margin-top: 24px;
+    background: linear-gradient(135deg, #FFD700, #FFA500);
+    color: #000;
+    font-weight: 700;
+    font-size: 17px;
+    border: none;
+    border-radius: 12px;
+    padding: 15px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: opacity 0.2s;
+  }
+  .gen-btn:hover { opacity: 0.9; }
+  .gen-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* QR section */
+  #qr-section {
+    display: none;
+    text-align: center;
+    margin-top: 28px;
+    padding-top: 28px;
+    border-top: 1px solid rgba(255,255,255,0.08);
+  }
+  #qr-section.show { display: block; }
+  .qr-label { font-size: 13px; color: rgba(255,255,255,0.5); margin-bottom: 12px; }
+  .qr-amount { font-size: 28px; font-weight: 900; color: #FFD700; margin-bottom: 16px; }
+  #qr-img {
+    width: 220px;
+    height: 220px;
+    border-radius: 12px;
+    background: #fff;
+    padding: 8px;
+  }
+  .qr-instruction {
+    margin-top: 14px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.5);
+    line-height: 1.6;
+  }
+  .qr-expire {
+    margin-top: 10px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.3);
+  }
+  #countdown { color: #f87171; font-weight: 700; }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>💰 Donate</h1>
+  <p class="subtitle">สแกน QR จ่ายได้ทุก app ธนาคาร</p>
+
+  <label>ชื่อที่จะขึ้นใน stream</label>
+  <input id="name" type="text" placeholder="ใส่ชื่อของคุณ" maxlength="40" />
+
+  <label>จำนวนเงิน (บาท)</label>
+  <input id="amount" type="number" placeholder="0" min="1" max="150000" />
+  <div class="amounts">
+    <button class="amount-btn" onclick="setAmount(20)">฿20</button>
+    <button class="amount-btn" onclick="setAmount(50)">฿50</button>
+    <button class="amount-btn" onclick="setAmount(100)">฿100</button>
+    <button class="amount-btn" onclick="setAmount(200)">฿200</button>
+    <button class="amount-btn" onclick="setAmount(500)">฿500</button>
+  </div>
+
+  <button class="gen-btn" onclick="generateQR()">สร้าง QR PromptPay</button>
+
+  <div id="qr-section">
+    <p class="qr-label">สแกนด้วย app ธนาคารของคุณ</p>
+    <div class="qr-amount" id="qr-amount-text"></div>
+    <img id="qr-img" alt="PromptPay QR" />
+    <p class="qr-instruction">
+      เปิด app ธนาคาร → สแกน QR → ยืนยันการโอน<br>
+      ใช้ได้กับทุกธนาคารในไทย
+    </p>
+    <p class="qr-expire">QR หมดอายุใน <span id="countdown">10:00</span></p>
+  </div>
+</div>
+
+<script>
+  let countdownTimer = null;
+
+  function setAmount(val) {
+    document.getElementById('amount').value = val;
+    document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+  }
+
+  document.getElementById('amount').addEventListener('input', () => {
+    document.querySelectorAll('.amount-btn').forEach(b => b.classList.remove('active'));
+  });
+
+  async function generateQR() {
+    const name = document.getElementById('name').value.trim();
+    const amount = parseFloat(document.getElementById('amount').value);
+
+    if (!name) { alert('กรุณาใส่ชื่อ'); return; }
+    if (!amount || amount < 1) { alert('กรุณาใส่จำนวนเงิน (ขั้นต่ำ ฿1)'); return; }
+
+    const btn = document.querySelector('.gen-btn');
+    btn.disabled = true;
+    btn.textContent = 'กำลังสร้าง QR...';
+
+    try {
+      const res = await fetch(`/api/qr?amount=${amount}`);
+      const data = await res.json();
+
+      if (data.error) throw new Error(data.error);
+
+      document.getElementById('qr-img').src = data.qr;
+      document.getElementById('qr-amount-text').textContent =
+        '฿' + amount.toLocaleString('th-TH');
+
+      const section = document.getElementById('qr-section');
+      section.classList.add('show');
+
+      // Scroll to QR
+      section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+      // Countdown 10 min
+      startCountdown(10 * 60);
+
+      btn.textContent = 'สร้าง QR ใหม่';
+    } catch (e) {
+      alert('เกิดข้อผิดพลาด: ' + e.message);
+      btn.textContent = 'สร้าง QR PromptPay';
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  function startCountdown(seconds) {
+    clearInterval(countdownTimer);
+    let remaining = seconds;
+    const el = document.getElementById('countdown');
+
+    function tick() {
+      const m = String(Math.floor(remaining / 60)).padStart(2, '0');
+      const s = String(remaining % 60).padStart(2, '0');
+      el.textContent = `${m}:${s}`;
+      if (remaining <= 0) {
+        clearInterval(countdownTimer);
+        el.textContent = 'หมดอายุแล้ว — สร้าง QR ใหม่';
+        el.style.color = '#f87171';
+      }
+      remaining--;
+    }
+    tick();
+    countdownTimer = setInterval(tick, 1000);
+  }
+</script>
+</body>
+</html>

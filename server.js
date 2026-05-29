@@ -1,17 +1,21 @@
+require('dotenv').config();
 const express = require('express');
 const { WebSocketServer } = require('ws');
 const http = require('http');
 const path = require('path');
-const crypto = require('crypto');
+const generatePayload = require('promptpay-qr');
+const QRCode = require('qrcode');
 
 const app = express();
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server });
 
+const PROMPTPAY_ID = process.env.PROMPTPAY_ID || '';
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Store connected overlay clients
+// ---- WebSocket ----
 const clients = new Set();
 
 wss.on('connection', (ws) => {
@@ -30,44 +34,76 @@ function broadcast(data) {
   }
 }
 
-// SCB webhook endpoint
-app.post('/webhook/scb', (req, res) => {
-  try {
-    const body = req.body;
-    console.log('[SCB webhook]', JSON.stringify(body));
+// ---- PromptPay QR API ----
+// GET /api/qr?amount=100
+app.get('/api/qr', async (req, res) => {
+  const amount = parseFloat(req.query.amount) || 0;
+  if (!PROMPTPAY_ID) return res.status(500).json({ error: 'PROMPTPAY_ID not set in .env' });
 
-    // SCB Easy API transaction notification format
-    const txn = body?.data?.transactionList?.[0] || body;
-    const amount = parseFloat(txn?.amount || txn?.transactionAmount || 0);
-    const sender = txn?.sender?.displayName || txn?.senderName || 'ไม่ระบุชื่อ';
-    const message = txn?.transactionRemark || txn?.comment || '';
+  const payload = generatePayload(PROMPTPAY_ID, { amount });
+  const qrDataUrl = await QRCode.toDataURL(payload, { width: 300, margin: 2 });
+  res.json({ qr: qrDataUrl });
+});
+
+// ---- Android LINE notification webhook ----
+// MacroDroid POST to /webhook/android with body: { "text": "..raw notification text.." }
+app.post('/webhook/android', (req, res) => {
+  try {
+    const text = req.body?.text || '';
+    console.log('[Android notification]', text);
+
+    // Parse SCB LINE notification format
+    // Example: "รับโอนเงิน ฿100.00 จาก นาย ก ข ค เวลา 14:30"
+    const amountMatch = text.match(/฿([\d,]+(?:\.\d{1,2})?)/);
+    const senderMatch = text.match(/จาก\s+(.+?)(?:\s+เวลา|\s+วันที่|$)/);
+
+    const amount = amountMatch ? parseFloat(amountMatch[1].replace(/,/g, '')) : 0;
+    const sender = senderMatch ? senderMatch[1].trim() : 'ไม่ระบุชื่อ';
+    const message = req.body?.donorMessage || '';
 
     if (amount > 0) {
       broadcast({ type: 'donation', sender, amount, message });
-      console.log(`[Donation] ${sender} → ฿${amount} "${message}"`);
+      console.log(`[Donation] ${sender} → ฿${amount}`);
     }
 
-    res.json({ status: 'ok' });
+    res.json({ status: 'ok', parsed: { sender, amount } });
   } catch (err) {
     console.error('[Webhook error]', err);
     res.status(400).json({ error: 'bad request' });
   }
 });
 
-// Test endpoint — send fake donation without needing real SCB
+// ---- Test endpoint ----
 app.post('/test', (req, res) => {
   const { sender = 'ผู้ทดสอบ', amount = 100, message = 'ทดสอบระบบ!' } = req.body || {};
   broadcast({ type: 'donation', sender, amount: parseFloat(amount), message });
-  console.log(`[Test donation] ${sender} → ฿${amount} "${message}"`);
+  console.log(`[Test] ${sender} → ฿${amount}`);
   res.json({ status: 'ok', sent: { sender, amount, message } });
+});
+
+// ---- Config endpoint (for donate page) ----
+app.get('/api/config', (req, res) => {
+  res.json({ hasPromptPay: !!PROMPTPAY_ID });
 });
 
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
+  const ip = getLocalIP();
   console.log(`\n=== Donation Alert Server ===`);
-  console.log(`Server:   http://localhost:${PORT}`);
-  console.log(`Overlay:  http://localhost:${PORT}/overlay.html  ← ใส่ใน OBS`);
-  console.log(`Test:     http://localhost:${PORT}/test.html`);
-  console.log(`Webhook:  http://localhost:${PORT}/webhook/scb  ← ใส่ใน SCB`);
+  console.log(`PC local IP:  ${ip}`);
+  console.log(`Overlay:      http://localhost:${PORT}/overlay.html  ← OBS Browser Source`);
+  console.log(`Donate page:  http://${ip}:${PORT}/donate.html       ← ส่งให้คนดู`);
+  console.log(`Test:         http://localhost:${PORT}/test.html`);
+  console.log(`Android hook: http://${ip}:${PORT}/webhook/android   ← ใส่ใน MacroDroid`);
   console.log(`============================\n`);
 });
+
+function getLocalIP() {
+  const { networkInterfaces } = require('os');
+  for (const iface of Object.values(networkInterfaces())) {
+    for (const alias of iface) {
+      if (alias.family === 'IPv4' && !alias.internal) return alias.address;
+    }
+  }
+  return 'localhost';
+}

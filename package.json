@@ -20,7 +20,10 @@
   },
   "homepage": "https://github.com/anonowen/donatesublaek#readme",
   "dependencies": {
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "promptpay-qr": "^0.5.0",
+    "qrcode": "^1.5.4",
     "ws": "^8.21.0"
   }
 }

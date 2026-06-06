@@ -149,12 +149,51 @@
       เปิด app ธนาคาร → สแกน QR → ยืนยันการโอน<br>
       ใช้ได้กับทุกธนาคารในไทย
     </p>
-    <p class="qr-expire">QR หมดอายุใน <span id="countdown">10:00</span></p>
+    <p class="qr-expire">QR หมดอายุใน <span id="countdown">3:00</span></p>
+  </div>
+
+  <!-- Thank you screen -->
+  <div id="thankyou-section" style="display:none;text-align:center;padding:32px 0;">
+    <div style="font-size:64px;margin-bottom:16px;">🎉</div>
+    <div style="font-size:24px;font-weight:900;color:#FFD700;margin-bottom:8px;">ขอบคุณมากเลย!</div>
+    <div style="font-size:15px;color:rgba(255,255,255,0.6);">การโอนสำเร็จแล้ว กลับหน้าหลักใน <span id="redirect-count">5</span> วินาที...</div>
   </div>
 </div>
 
 <script>
   let countdownTimer = null;
+  let pendingAmount = null;
+
+  // ---- WebSocket: รอยืนยัน payment ----
+  function connectWS() {
+    const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const ws = new WebSocket(`${protocol}//${location.host}`);
+    ws.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        if (data.type === 'donation' && pendingAmount !== null && data.amount == pendingAmount) {
+          showThankYou();
+        }
+      } catch {}
+    };
+    ws.onclose = () => setTimeout(connectWS, 3000);
+  }
+  connectWS();
+
+  function showThankYou() {
+    pendingAmount = null;
+    clearInterval(countdownTimer);
+    document.getElementById('qr-section').style.display = 'none';
+    document.querySelector('.gen-btn').style.display = 'none';
+    document.getElementById('thankyou-section').style.display = 'block';
+    let sec = 5;
+    const el = document.getElementById('redirect-count');
+    const t = setInterval(() => {
+      sec--;
+      el.textContent = sec;
+      if (sec <= 0) { clearInterval(t); location.reload(); }
+    }, 1000);
+  }
 
   function setAmount(val) {
     document.getElementById('amount').value = val;
@@ -195,6 +234,7 @@
       section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
       // Countdown 3 min
+      pendingAmount = amount;
       startCountdown(3 * 60);
 
       btn.textContent = 'สร้าง QR ใหม่';

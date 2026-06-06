@@ -57,11 +57,16 @@ app.get('/api/qr', async (req, res) => {
   const message = (req.query.message || '').trim().slice(0, 250);
   if (!PROMPTPAY_ID) return res.status(500).json({ error: 'PROMPTPAY_ID not set in .env' });
 
-  // Store pending so webhook can match by amount
+  // Store pending so webhook can match by amount (queue supports same-amount concurrent donations)
   if (name && amount > 0) {
-    pending.set(String(amount), { name, message, ts: Date.now() });
-    // Auto-expire after 30 min
-    setTimeout(() => pending.delete(String(amount)), 30 * 60 * 1000);
+    const key = String(amount);
+    if (!pending.has(key)) pending.set(key, []);
+    pending.get(key).push({ name, message, ts: Date.now() });
+    // Auto-expire entry after 30 min
+    setTimeout(() => {
+      const q = pending.get(key);
+      if (q) { q.shift(); if (q.length === 0) pending.delete(key); }
+    }, 30 * 60 * 1000);
   }
 
   const payload = generatePayload(PROMPTPAY_ID, { amount });
@@ -93,11 +98,12 @@ app.post('/webhook/android', (req, res) => {
     const message = req.body?.donorMessage || '';
 
     if (amount > 0) {
-      // Try to match pending donation for name & message
-      const p = pending.get(String(amount));
+      // Try to match pending donation for name & message (FIFO queue)
+      const queue = pending.get(String(amount));
+      const p = queue?.shift();
+      if (queue?.length === 0) pending.delete(String(amount));
       const displayName = (p?.name) || sender;
       const displayMsg  = (p?.message) || message;
-      if (p) pending.delete(String(amount));
       broadcast({ type: 'donation', sender: displayName, amount, message: displayMsg });
       console.log(`[Donation] ${displayName} → ฿${amount} "${displayMsg}"`);
     }

@@ -24,6 +24,7 @@ let settings = {
 };
 
 app.use(express.json());
+app.use(express.text()); // accept plain text body too
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ---- WebSocket ----
@@ -77,7 +78,8 @@ app.get('/debug/last', (req, res) => res.json(lastWebhook || { empty: true }));
 app.post('/webhook/android', (req, res) => {
   try {
     lastWebhook = { body: req.body, ts: new Date().toISOString() };
-    const text = req.body?.text || '';
+    // Accept JSON body {text:...}, plain text body, or ?text= query param
+    const text = (typeof req.body === 'string' ? req.body : req.body?.text) || req.query.text || '';
     console.log('[Android notification]', text);
 
     // Parse SCB Connect LINE notification format
